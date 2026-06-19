@@ -1,0 +1,113 @@
+name: Build Hirax AI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ created ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build executable
+      run: |
+        pyinstaller --onefile --windowed --name="HiraxAI" --add-data="frontend;frontend" --add-data="backend;backend" run.py
+    
+    - name: Upload Windows build
+      uses: actions/upload-artifact@v3
+      with:
+        name: HiraxAI-Windows
+        path: dist/HiraxAI.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build executable
+      run: |
+        pyinstaller --onefile --name="HiraxAI" --add-data="frontend:frontend" --add-data="backend:backend" run.py
+    
+    - name: Upload Linux build
+      uses: actions/upload-artifact@v3
+      with:
+        name: HiraxAI-Linux
+        path: dist/HiraxAI
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build executable
+      run: |
+        pyinstaller --onefile --windowed --name="HiraxAI" --add-data="frontend:frontend" --add-data="backend:backend" run.py
+    
+    - name: Upload macOS build
+      uses: actions/upload-artifact@v3
+      with:
+        name: HiraxAI-macOS
+        path: dist/HiraxAI
+
+  create-release:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+    
+    - name: Create release package
+      run: |
+        mkdir release
+        cp artifacts/HiraxAI-Windows/HiraxAI.exe release/HiraxAI-Windows.exe
+        cp artifacts/HiraxAI-Linux/HiraxAI release/HiraxAI-Linux
+        cp artifacts/HiraxAI-macOS/HiraxAI release/HiraxAI-macOS
+        cd release && zip -r ../HiraxAI-All-Platforms.zip *
+    
+    - name: Upload to release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: HiraxAI-All-Platforms.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
