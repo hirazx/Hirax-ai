@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hirax AI - Intelligent Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-robot"></i>
+                    <h2>Hirax AI</h2>
+                </div>
+                <div class="mode-badge" id="modeBadge">
+                    <i class="fas fa-circle" style="color: #00ff88;"></i>
+                    Offline
+                </div>
+            </div>
+            
+            <div class="sidebar-menu">
+                <button onclick="newChat()" class="menu-btn">
+                    <i class="fas fa-plus"></i> New Chat
+                </button>
+                <button onclick="showProjects()" class="menu-btn">
+                    <i class="fas fa-folder"></i> Projects
+                </button>
+                <button onclick="toggleTerminal()" class="menu-btn">
+                    <i class="fas fa-terminal"></i> Terminal
+                </button>
+                <button onclick="checkStatus()" class="menu-btn">
+                    <i class="fas fa-chart-line"></i> Status
+                </button>
+                <button onclick="clearMemory()" class="menu-btn">
+                    <i class="fas fa-trash"></i> Clear Memory
+                </button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="status-bar">
+                    <i class="fas fa-circle" style="color: #00ff88; font-size: 10px;"></i>
+                    <span id="statusText">Online</span>
+                </div>
+                <div class="version">v2.0.0</div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main">
+            <div class="chat-header">
+                <div class="header-left">
+                    <button id="sidebarToggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h3>Hirax AI Assistant</h3>
+                </div>
+                <div class="header-right">
+                    <label for="fileInput" class="upload-btn">
+                        <i class="fas fa-paperclip"></i>
+                        <span>Upload</span>
+                    </label>
+                    <input type="file" id="fileInput" multiple style="display:none">
+                    <button onclick="clearChat()" class="clear-btn">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="messages">
+                <div class="message bot">
+                    <div class="avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="content">
+                        <div class="message-header">
+                            <span class="sender">Hirax AI</span>
+                            <span class="time">Now</span>
+                        </div>
+                        <div class="message-body">
+                            <p>Halo! Saya <strong>Hirax AI</strong> — asisten coding cerdas Anda.</p>
+                            <p>Saya siap membantu:</p>
+                            <ul>
+                                <li>💻 Coding dalam berbagai bahasa</li>
+                                <li>📁 Membuat project lengkap</li>
+                                <li>📄 Analisis file & gambar</li>
+                                <li>🐛 Debugging & optimasi</li>
+                            </ul>
+                            <p><em style="color: #888;">Model: Gemma-4-E4B | 100% Offline</em></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <div class="input-container">
+                    <textarea 
+                        id="promptInput" 
+                        rows="1" 
+                        placeholder="Tanyakan apa pun ke Hirax..."
+                        oninput="autoResize(this)"
+                    ></textarea>
+                    <button onclick="sendMessage()" id="sendBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="input-footer">
+                    <span>Hirax AI dapat melakukan kesalahan. Periksa informasi penting.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal Panel -->
+        <div class="terminal-panel" id="terminalPanel" style="display:none;">
+            <div class="terminal-header">
+                <div>
+                    <i class="fas fa-terminal"></i>
+                    <span>Terminal</span>
+                </div>
+                <button onclick="toggleTerminal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="terminal-body" id="terminal">
+                <div class="terminal-welcome">
+                    <span>🔌 Terminal connected</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

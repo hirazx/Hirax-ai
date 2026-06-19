@@ -1,0 +1,41 @@
+import chromadb
+import json
+from datetime import datetime
+
+class MemoryManager:
+    def __init__(self):
+        try:
+            self.client = chromadb.PersistentClient(path="./memory_db")
+            self.collection = self.client.get_or_create_collection("hirax_memory")
+        except Exception as e:
+            print(f"[Memory] Warning: {e}")
+            self.collection = None
+    
+    def add_conversation(self, user_msg: str, ai_response: str):
+        """Simpan percakapan"""
+        if not self.collection:
+            return
+        doc = f"User: {user_msg}\nAI: {ai_response}"
+        try:
+            self.collection.add(
+                documents=[doc],
+                metadatas=[{"timestamp": datetime.now().isoformat()}],
+                ids=[str(hash(user_msg + str(datetime.now())))]
+            )
+        except:
+            pass
+    
+    def search_similar(self, query: str, limit: int = 5):
+        """Cari memory mirip"""
+        if not self.collection:
+            return []
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=limit
+            )
+            return results['documents'][0] if results['documents'] else []
+        except:
+            return []
+
+memory_manager = MemoryManager()

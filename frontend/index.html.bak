@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hirax AI - Intelligent Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>🤖 Hirax AI</h2>
+                <div class="mode-badge" id="modeBadge">⚡ Offline</div>
+            </div>
+            <div class="sidebar-menu">
+                <button onclick="newChat()">➕ New Chat</button>
+                <button onclick="showProjects()">📁 Projects</button>
+                <button onclick="toggleTerminal()">💻 Terminal</button>
+                <button onclick="checkStatus()">📊 Status</button>
+            </div>
+            <div class="sidebar-footer">
+                <div class="status" id="status">🟢 Online</div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main">
+            <div class="chat-header">
+                <h3>💬 Chat with Hirax</h3>
+                <div class="upload-btn">
+                    <label for="fileInput">📎 Upload</label>
+                    <input type="file" id="fileInput" multiple style="display:none">
+                </div>
+            </div>
+
+            <div class="chat-messages" id="messages">
+                <div class="message bot">
+                    <div class="avatar">🤖</div>
+                    <div class="content">
+                        <p>Halo! Saya <strong>Hirax AI</strong> (Full Offline).</p>
+                        <p>Saya siap membantu coding, membuat project, dan menjawab pertanyaan teknis Anda. 🌟</p>
+                        <p><em>Model: Gemma-4-E4B | 100% Offline</em></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <textarea id="promptInput" rows="3" placeholder="Tanya apa pun ke Hirax..."></textarea>
+                <div class="input-actions">
+                    <button onclick="sendMessage()" id="sendBtn">🚀 Kirim</button>
+                    <button onclick="clearChat()" id="clearBtn">🗑️ Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal Panel -->
+        <div class="terminal-panel" id="terminalPanel" style="display:none;">
+            <div class="terminal-header">
+                <span>💻 Terminal</span>
+                <button onclick="toggleTerminal()">✖</button>
+            </div>
+            <div id="terminal"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+websockets
+aiofiles
+python-dotenv
+llama-cpp-python
+pypdf2
+pytesseract
+Pillow

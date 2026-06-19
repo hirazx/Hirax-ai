@@ -1,0 +1,231 @@
+// Hirax AI - Frontend Controller
+let ws = null;
+let terminalConnected = false;
+
+// DOM Elements
+const messages = document.getElementById('messages');
+const promptInput = document.getElementById('promptInput');
+const sendBtn = document.getElementById('sendBtn');
+const clearBtn = document.getElementById('clearBtn');
+const fileInput = document.getElementById('fileInput');
+const modeBadge = document.getElementById('modeBadge');
+const status = document.getElementById('status');
+
+// Send message
+async function sendMessage() {
+    const prompt = promptInput.value.trim();
+    if (!prompt) return;
+    
+    // Add user message
+    addMessage('user', prompt);
+    promptInput.value = '';
+    
+    // Disable send
+    sendBtn.disabled = true;
+    sendBtn.textContent = '⏳...';
+    
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+        
+        const data = await response.json();
+        if (data.response) {
+            addMessage('bot', data.response);
+        }
+    } catch (error) {
+        addMessage('bot', '❌ Error: ' + error.message);
+    }
+    
+    sendBtn.disabled = false;
+    sendBtn.textContent = '🚀 Kirim';
+}
+
+// Add message
+function addMessage(type, content) {
+    const div = document.createElement('div');
+    div.className = `message ${type}`;
+    div.innerHTML = `
+        <div class="avatar">${type === 'user' ? '👤' : '🤖'}</div>
+        <div class="content">${formatContent(content)}</div>
+    `;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    
+    // Highlight code blocks
+    div.querySelectorAll('pre code').forEach(block => {
+        hljs.highlightElement(block);
+    });
+}
+
+// Format content (markdown-like)
+function formatContent(content) {
+    // Code blocks
+    content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="${lang || ''}">${escapeHtml(code.trim())}</code></pre>`;
+    });
+    
+    // Inline code
+    content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
+    
+    // Bold
+    content = content.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    
+    // Newline to <br>
+    content = content.replace(/\n/g, '<br>');
+    
+    return content;
+}
+
+// Escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Upload file
+fileInput.addEventListener('change', async function(e) {
+    const file = this.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    addMessage('user', `📎 Upload: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+    
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.content) {
+            addMessage('bot', `📄 Konten file **${file.name}**:\n\n${data.content.substring(0, 500)}...`);
+        } else {
+            addMessage('bot', `✅ File ${file.name} berhasil diupload!`);
+        }
+    } catch (error) {
+        addMessage('bot', '❌ Upload failed: ' + error.message);
+    }
+    
+    this.value = '';
+});
+
+// New chat
+function newChat() {
+    messages.innerHTML = '';
+    addMessage('bot', '🔄 Chat baru dimulai! Ada yang bisa saya bantu?');
+}
+
+// Clear chat
+function clearChat() {
+    messages.innerHTML = '';
+    addMessage('bot', '🧹 Chat dibersihkan. Saya siap membantu lagi!');
+}
+
+// Toggle terminal
+function toggleTerminal() {
+    const panel = document.getElementById('terminalPanel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        connectTerminal();
+    } else {
+        panel.style.display = 'none';
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+    }
+}
+
+// Connect WebSocket Terminal
+function connectTerminal() {
+    if (ws && ws.readyState === WebSocket.OPEN) return;
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/terminal`;
+    
+    ws = new WebSocket(wsUrl);
+    const terminalDiv = document.getElementById('terminal');
+    
+    ws.onopen = function() {
+        terminalDiv.innerHTML += '<div>🔌 Terminal connected</div>';
+        terminalConnected = true;
+    };
+    
+    ws.onmessage = function(event) {
+        terminalDiv.innerHTML += `<div>${escapeHtml(event.data)}</div>`;
+        terminalDiv.scrollTop = terminalDiv.scrollHeight;
+    };
+    
+    ws.onclose = function() {
+        terminalDiv.innerHTML += '<div>🔌 Terminal disconnected</div>';
+        terminalConnected = false;
+    };
+    
+    // Send command on Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && terminalDiv === document.activeElement) {
+            const input = terminalDiv.innerText;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(input + '\n');
+                terminalDiv.innerHTML += `<div>$ ${input}</div>`;
+                terminalDiv.innerText = '';
+            }
+        }
+    });
+}
+
+// Show projects
+async function showProjects() {
+    try {
+        const response = await fetch('/api/projects');
+        const projects = await response.json();
+        
+        let msg = '📁 **Projects Saya:**\n\n';
+        if (projects.length === 0) {
+            msg += 'Belum ada project. Buat project baru dengan perintah!';
+        } else {
+            projects.forEach(p => {
+                msg += `- **${p.name}** (${p.path})\n`;
+            });
+            msg += '\nGunakan: `/project create <nama> <type>` untuk buat baru';
+        }
+        addMessage('bot', msg);
+    } catch (error) {
+        addMessage('bot', '❌ Gagal load projects: ' + error.message);
+    }
+}
+
+// Check status
+async function checkStatus() {
+    try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        const statusMsg = `
+📊 **Status Hirax AI**
+
+- Mode: ${data.mode}
+- Model: ${data.model}
+- Status: ${data.loaded ? '✅ Loaded' : '⚠️ Not Loaded'}
+${data.message ? `- Info: ${data.message}` : ''}
+        `;
+        addMessage('bot', statusMsg);
+    } catch (error) {
+        addMessage('bot', '❌ Gagal cek status: ' + error.message);
+    }
+}
+
+// Enter key to send
+promptInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// Initial status
+console.log('🤖 Hirax AI loaded successfully!');
