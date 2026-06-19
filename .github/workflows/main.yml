@@ -7,107 +7,188 @@ on:
     branches: [ main, master ]
   release:
     types: [ created ]
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
     
     - name: Build executable
       run: |
-        pyinstaller --onefile --windowed --name="HiraxAI" --add-data="frontend;frontend" --add-data="backend;backend" run.py
+        pyinstaller --onefile --windowed --name="HiraxAI" --add-data="frontend;frontend" --add-data="backend;backend" --hidden-import=uvicorn --hidden-import=fastapi run.py
     
     - name: Upload Windows build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: HiraxAI-Windows
         path: dist/HiraxAI.exe
+        compression-level: 9
 
   build-linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libopenblas-dev libomp-dev
     
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
     
     - name: Build executable
       run: |
-        pyinstaller --onefile --name="HiraxAI" --add-data="frontend:frontend" --add-data="backend:backend" run.py
+        pyinstaller --onefile --name="HiraxAI" --add-data="frontend:frontend" --add-data="backend:backend" --hidden-import=uvicorn --hidden-import=fastapi run.py
     
     - name: Upload Linux build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: HiraxAI-Linux
         path: dist/HiraxAI
+        compression-level: 9
 
   build-macos:
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
     
     - name: Build executable
       run: |
-        pyinstaller --onefile --windowed --name="HiraxAI" --add-data="frontend:frontend" --add-data="backend:backend" run.py
+        pyinstaller --onefile --windowed --name="HiraxAI" --add-data="frontend:frontend" --add-data="backend:backend" --hidden-import=uvicorn --hidden-import=fastapi run.py
     
     - name: Upload macOS build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: HiraxAI-macOS
         path: dist/HiraxAI
+        compression-level: 9
+
+  build-termux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Create Termux package
+      run: |
+        mkdir -p termux-package
+        cp -r backend termux-package/
+        cp -r frontend termux-package/
+        cp run.py termux-package/
+        cp requirements.txt termux-package/
+        cp install.sh termux-package/
+        cd termux-package
+        zip -r ../HiraxAI-Termux.zip *
+    
+    - name: Upload Termux package
+      uses: actions/upload-artifact@v4
+      with:
+        name: HiraxAI-Termux
+        path: HiraxAI-Termux.zip
+        compression-level: 9
 
   create-release:
-    needs: [build-windows, build-linux, build-macos]
+    needs: [build-windows, build-linux, build-macos, build-termux]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: artifacts
+    
+    - name: List artifacts
+      run: |
+        ls -la artifacts/
+        find artifacts -type f
     
     - name: Create release package
       run: |
         mkdir release
-        cp artifacts/HiraxAI-Windows/HiraxAI.exe release/HiraxAI-Windows.exe
-        cp artifacts/HiraxAI-Linux/HiraxAI release/HiraxAI-Linux
-        cp artifacts/HiraxAI-macOS/HiraxAI release/HiraxAI-macOS
-        cd release && zip -r ../HiraxAI-All-Platforms.zip *
+        if [ -f "artifacts/HiraxAI-Windows/HiraxAI.exe" ]; then
+          cp artifacts/HiraxAI-Windows/HiraxAI.exe release/HiraxAI-Windows.exe
+        fi
+        if [ -f "artifacts/HiraxAI-Linux/HiraxAI" ]; then
+          cp artifacts/HiraxAI-Linux/HiraxAI release/HiraxAI-Linux
+          chmod +x release/HiraxAI-Linux
+        fi
+        if [ -f "artifacts/HiraxAI-macOS/HiraxAI" ]; then
+          cp artifacts/HiraxAI-macOS/HiraxAI release/HiraxAI-macOS
+          chmod +x release/HiraxAI-macOS
+        fi
+        if [ -f "artifacts/HiraxAI-Termux/HiraxAI-Termux.zip" ]; then
+          cp artifacts/HiraxAI-Termux/HiraxAI-Termux.zip release/HiraxAI-Termux.zip
+        fi
+        cd release
+        zip -r ../HiraxAI-All-Platforms.zip *
     
     - name: Upload to release
-      uses: softprops/action-gh-release@v1
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v2
       with:
-        files: HiraxAI-All-Platforms.zip
+        files: |
+          HiraxAI-All-Platforms.zip
+          release/HiraxAI-Windows.exe
+          release/HiraxAI-Linux
+          release/HiraxAI-macOS
+          release/HiraxAI-Termux.zip
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Upload as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: HiraxAI-All-Platforms
+        path: HiraxAI-All-Platforms.zip
+        compression-level: 9
